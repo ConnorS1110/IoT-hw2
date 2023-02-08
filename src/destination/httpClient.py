@@ -30,37 +30,42 @@ def main(files, num_of_times):
         # Receive the data
         while True:
             chunk = s.recv(4096)
+            fileSize = 0
             if not chunk:
                 break
+            if b"SIZE_OF_FILE" in chunk:
+                fileSize = int(chunk.decode('utf-8').split(": ")[1])
             if b"END_OF_LOOP" in chunk:
                 stopTime = time.time()
-                updateStats(startTime, stopTime, data, file)
+                updateStats(startTime, stopTime, data, file, fileSize)
             else:
                 data += chunk
 
         # Close the socket
         s.close()
 
-def updateStats(startTime, stopTime, data, file):
+def updateStats(startTime, stopTime, data, file, fileSize):
     if file not in statsDict:
         statsDict[file] = {}
         statsDict[file]["n"] = 0
-        statsDict[file]["listOfTimes"] = []
-        statsDict[file]["totalTime"] = 0
+        statsDict[file]["listOfThroughPut"] = []
+        statsDict[file]["totalThroughput"] = 0
         statsDict[file]["avg"] = 0
         statsDict[file]["std"] = 0
-        statsDict[file]["data"] = 0
+        statsDict[file]["totalData"] = 0
+        statsDict[file]["appData"] = 0
     statsDict[file]["n"] += 1
-    statsDict[file]["listOfTimes"].append(round(stopTime - startTime, 3))
-    statsDict[file]["totalTime"] += round(stopTime - startTime, 3)
-    statsDict[file]["avg"] = round(statsDict[file]["totalTime"] / statsDict[file]["n"], 3)
-    statsDict[file]["std"] = calcSTD(statsDict[file]["listOfTimes"], statsDict[file]["avg"], statsDict[file]["n"])
-    statsDict[file]["data"] += len(data)
+    statsDict[file]["listOfThroughPut"].append(round((len(data) * 0.008) / (stopTime - startTime), 3))
+    statsDict[file]["totalThroughput"] += statsDict[file]["listOfThroughPut"][-1]
+    statsDict[file]["avg"] = round(statsDict[file]["totalThroughput"] / statsDict[file]["n"], 3)
+    statsDict[file]["std"] = calcSTD(statsDict[file]["listOfThroughPut"], statsDict[file]["avg"], statsDict[file]["n"])
+    statsDict[file]["totalData"] += len(data)
+    statsDict[file]["appData"] += round(((statsDict[file]["totalData"] / fileSize) / statsDict[file]["n"]), 3)
 
-def calcSTD(listOfTimes, avg, n):
+def calcSTD(listOfThroughPut, avg, n):
     sumOfDiffOfSquares = 0
-    for currentTime in listOfTimes:
-        sumOfDiffOfSquares += (currentTime - avg) ** 2
+    for currentThroughput in listOfThroughPut:
+        sumOfDiffOfSquares += (currentThroughput - avg) ** 2
 
     return round((sumOfDiffOfSquares / n) ** 0.5, 3)
 
@@ -79,4 +84,6 @@ if __name__ == "__main__":
         else:
             times_to_send.append(10000)
     main(data_file_names, times_to_send)
-    print(statsDict)
+    for key, value in statsDict.items():
+        if key not in ["listOfThroughPut", "totalThroughput", "totalData"]:
+            print(key, ": ", value)

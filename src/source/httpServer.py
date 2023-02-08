@@ -27,6 +27,8 @@ def main():
             data = f.read() + b"END_OF_LOOP"
             for i in range(numTimesToSend):
                 c.sendall(data)
+        fileSizeBytes = b'SIZE_OF_FILE: ' + os.path.getsize(filePath)
+        c.sendall(fileSizeBytes.encode())
         c.close()
         print("Connection closed")
     s.close()
