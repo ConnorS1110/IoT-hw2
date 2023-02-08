@@ -27,10 +27,10 @@ def main(files, num_of_times):
         s.sendall(f"GET {file} NUM: {num_of_times[index]} HTTP/1.0\r\n\r\n".encode())
 
         startTime = time.time()
+        fileSize = 0
         # Receive the data
         while True:
             chunk = s.recv(4096)
-            fileSize = 0
             if not chunk:
                 break
             if b"SIZE_OF_FILE" in chunk:
@@ -59,8 +59,8 @@ def updateStats(startTime, stopTime, data, file, fileSize):
     statsDict[file]["totalThroughput"] += statsDict[file]["listOfThroughPut"][-1]
     statsDict[file]["avg"] = round(statsDict[file]["totalThroughput"] / statsDict[file]["n"], 3)
     statsDict[file]["std"] = calcSTD(statsDict[file]["listOfThroughPut"], statsDict[file]["avg"], statsDict[file]["n"])
-    statsDict[file]["totalData"] += len(data)
-    statsDict[file]["appData"] += round(((statsDict[file]["totalData"] / fileSize) / statsDict[file]["n"]), 3)
+    statsDict[file]["totalData"] += len(data) * 0.008
+    statsDict[file]["appData"] += round(((statsDict[file]["totalData"] / (fileSize * 0.008)) / statsDict[file]["n"]), 3)
 
 def calcSTD(listOfThroughPut, avg, n):
     sumOfDiffOfSquares = 0
@@ -84,6 +84,8 @@ if __name__ == "__main__":
         else:
             times_to_send.append(10000)
     main(data_file_names, times_to_send)
-    for key, value in statsDict.items():
-        if key not in ["listOfThroughPut", "totalThroughput", "totalData"]:
-            print(key, ": ", value)
+    for outerKey, outerValue in statsDict.items():
+        print("File: ", outerKey)
+        for innerKey, innerValue in outerValue.items():
+            if innerKey not in ["listOfThroughPut", "totalThroughput", "totalData"]:
+                print(innerKey, ": ", innerValue)

@@ -23,12 +23,14 @@ def main():
         recvDataSplit = c.recv(4096).decode('utf-8').split("GET ")[1].split(" HTTP/1.0\r\n\r\n")[0].split(" NUM: ")
         filePath = os.path.join(script_dir, "../../data/" + recvDataSplit[0])
         numTimesToSend = int(recvDataSplit[1])
+        fileSizeBytes = 'SIZE_OF_FILE: '
         with open(filePath, "rb") as f:
-            data = f.read() + b"END_OF_LOOP"
+            data = f.read()
+            fileSizeBytes += str(len(data))
+            c.sendall(fileSizeBytes.encode('utf-8'))
+            data += b"END_OF_LOOP"
             for i in range(numTimesToSend):
                 c.sendall(data)
-        fileSizeBytes = b'SIZE_OF_FILE: ' + os.path.getsize(filePath)
-        c.sendall(fileSizeBytes.encode())
         c.close()
         print("Connection closed")
     s.close()
