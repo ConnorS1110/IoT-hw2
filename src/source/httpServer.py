@@ -1,9 +1,12 @@
+import os
 import socket
 import sys
 
 def main():
-    HOST = 'localhost'
+    HOST = ''
     PORT = 8000
+    script_dir = os.path.dirname(__file__)
+
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Socket created successfully")
     try:
@@ -18,7 +21,7 @@ def main():
         c, addr = s.accept()
         print('Connected with ' + addr[0] + ':' + str(addr[1]))
         recvDataSplit = c.recv(4096).decode('utf-8').split("GET ")[1].split(" HTTP/1.0\r\n\r\n")[0].split(" NUM: ")
-        filePath = recvDataSplit[0]
+        filePath = os.path.join(script_dir, "../../data/" + recvDataSplit[0])
         numTimesToSend = int(recvDataSplit[1])
         with open(filePath, "rb") as f:
             data = f.read() + b"END_OF_LOOP"

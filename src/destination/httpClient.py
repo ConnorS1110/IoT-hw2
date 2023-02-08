@@ -6,13 +6,13 @@ import time
 statsDict = {}
 
 def main(files, num_of_times):
-    HOST = 'localhost'
+    HOST = '10.0.5.89'
     PORT = 8000
 
     data = b""
 
     for index, file in enumerate(files):
-        print("Current file: ", file.split("/")[-1])
+        print("Current file: ", file)
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             print("Socket created")
@@ -34,7 +34,7 @@ def main(files, num_of_times):
                 break
             if b"END_OF_LOOP" in chunk:
                 stopTime = time.time()
-                updateStats(startTime, stopTime, data, file.split("/")[-1])
+                updateStats(startTime, stopTime, data, file)
             else:
                 data += chunk
 
@@ -70,7 +70,6 @@ if __name__ == "__main__":
     data_file_names = ["1MB", "10KB", "10MB", "100B"]
     times_to_send = []
     for index, file in enumerate(data_file_names):
-        data_file_names[index] = os.path.join(script_dir, "../../data/" + file)
         if file == "1MB":
             times_to_send.append(100)
         elif file == "10KB":
