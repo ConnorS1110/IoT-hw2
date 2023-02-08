@@ -73,6 +73,7 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(__file__)
 
     data_file_names = ["1MB", "10KB", "10MB", "100B"]
+    # data_file_names = ["10KB"]
     times_to_send = []
     for index, file in enumerate(data_file_names):
         if file == "1MB":
