@@ -46,6 +46,8 @@ To run the code for each QoS level, the following procedure needs to be followed
         -   find packets with Publish Message [ece/file_send]
         -   open TCP packets for published message 
         -   PDU size will contain the overhead of application layer
+        
+        NOTE - For qos2 publish release message from sender to broker is also considered as overhead so we have added that in our calculation.
     
    
 
