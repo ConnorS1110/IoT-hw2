@@ -16,7 +16,7 @@ PORT_NUM = 1883
 KEEP_ALIVE = 100
 
 # Define the IP address of the MQTT broker to connect to
-BROKER_ADDRESS = '192.168.1.233'
+BROKER_ADDRESS = '192.168.1.198'
 
 # Use NTP to get the current time and calculate an offset from UTC
 time_offset = ntplib.NTPClient().request('pool.ntp.org', version=3).offset
@@ -84,7 +84,7 @@ def print_recv_bytes():
 
 def send_recv_times():
     for t in recv_times:
-        client.publish(topic=topic_to_receive_message, payload=f"100B {t}", qos=1)
+        mqtt_subscriber.publish(topic=topic_to_receive_message, payload=f"100B {t}", qos=1)
 
 
 class _FinishReceiving(Exception):
@@ -110,4 +110,3 @@ try:
     mqtt_subscriber.loop_forever()
 except _FinishReceiving:
     pass
-
