@@ -59,9 +59,10 @@ def new_sock_recv(self, bufsize):
     global recv
     ret = self.__sock_recv(bufsize)
     recv += len(ret)
+    return ret
 
-mqtt_subscriber.__sock_recv = mqtt_subscriber._sock_recv
-mqtt_subscriber._sock_recv = new_sock_recv
+client.Client.__sock_recv = mqtt_subscriber._sock_recv
+client.Client._sock_recv = new_sock_recv
 
 # Set the username and password for the broker if required
 # mqtt_subscriber.username_pw_set(username="your_username", password="your_password")
