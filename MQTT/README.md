@@ -47,7 +47,6 @@ To run the code for each QoS level, the following procedure needs to be followed
         -   open TCP packets for published message 
         -   PDU size will contain the overhead of application layer
     
-    7. A script is written to find out the above pdu size of all the samples and average is calculated.
-
+   
 
   
