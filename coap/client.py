@@ -11,6 +11,8 @@ import numpy as np
 
 import aiocoap.transports.udp6
 
+from dataclasses import dataclass
+
 class CountingSocket(socket.socket):
     bytes_received = 0
 
@@ -43,13 +45,23 @@ async def new_create_client_transport_endpoint(cls, ctx, log, loop):
 aiocoap.transports.udp6.MessageInterfaceUDP6.create_client_transport_endpoint = new_create_client_transport_endpoint
 
 
+@dataclass
+class Measurement:
+    time: int
+    recv: int
+    size: int
+
+
 async def measure_download_time(protocol, uri):
     CountingSocket.reset_recv_counter()
     start_time = time.perf_counter_ns()
     msg = aiocoap.Message(code=aiocoap.GET, uri=uri)
     response = await protocol.request(msg).response
     end_time = time.perf_counter_ns()
-    return end_time - start_time, CountingSocket.get_recv_counter()
+    return Measurement(
+            time=end_time - start_time,
+            recv=CountingSocket.get_recv_counter(),
+            size=len(response.payload))
 
 
 async def main():
@@ -58,7 +70,6 @@ async def main():
     parser.add_argument("-c", "--count", type=int, default=1, help="number of times the requested file should be downloaded")
     parser.add_argument("--host", default="localhost", help="host to connect to")
     parser.add_argument("--port", default="5683", help="port to connect to")
-    parser.add_argument("--expected-size", type=int, default=None, help="expected size for calculating overhead")
 
     args = parser.parse_args()
 
@@ -67,19 +78,21 @@ async def main():
 
     data = [await measure_download_time(protocol, uri) for _ in range(args.count)]
 
-    times, recv = list(zip(*data))
-    times = np.array(times)
-    recv = np.array(recv)
+    times = np.array([d.time for d in data])
+    recv = np.array([d.recv for d in data])
+    sizes = [d.size for d in data]
+    assert len(set(sizes)) == 1
+    size = sizes[0]
+
 
     print(f"Receive time:   {np.mean(times)} ± {np.std(times)} ns")
     print(f"Bytes received: {np.mean(recv)} ± {np.std(recv)} bytes")
-    if args.expected_size is not None:
-        overhead = recv / args.expected_size
-        print(f"Overhead:       {np.mean(overhead)} ± {np.std(overhead)}")
+    overhead = recv / size
+    print(f"Overhead:       {np.mean(overhead)} ± {np.std(overhead)}")
 
-        # Size is in bytes, and speed is needed in kbps, so multiply by 8
-        throughput = args.expected_size / (times / 10**9) * 8 / 1000
-        print(f"Throughput:     {np.mean(throughput)} ± {np.std(throughput)} kbps")
+    # Size is in bytes, and speed is needed in kbps, so multiply by 8
+    throughput = size / (times / 10**9) * 8 / 1000
+    print(f"Throughput:     {np.mean(throughput)} ± {np.std(throughput)} kbps")
 
 
 
