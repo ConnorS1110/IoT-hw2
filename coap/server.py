@@ -44,6 +44,8 @@ class FileResource(resource.Resource, resource.PathCapable):
 async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("root", help="directory to serve files from")
+    parser.add_argument("--host", default="localhost", help="host to bind to")
+    parser.add_argument("--port", type=int, default=None, help="port to bind to")
 
     args = parser.parse_args()
 
@@ -52,7 +54,7 @@ async def main():
                       resource.WKCResource(root.get_resources_as_linkheader))
     root.add_resource(["hw_files"], FileResource(args.root))
     
-    await aiocoap.Context.create_server_context(root)
+    await aiocoap.Context.create_server_context(root, bind=(args.host, args.port))
 
     await asyncio.get_running_loop().create_future()
 
