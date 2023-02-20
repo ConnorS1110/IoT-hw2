@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import requests
 import socket
 import time
 
@@ -50,32 +49,32 @@ def measure_download_time(host, port, path):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("file", help="name of the file to get")
-    parser.add_argument("-c", "--count", type=int, default=1, help="number of times the requested file should be downloaded")
     parser.add_argument("--host", default="localhost", help="host to connect to")
     parser.add_argument("--port", type=int, default=80, help="port to connect to")
 
+    files_list = [["1MB", 100], ["10KB", 1000], ["10MB", 10], ["100B", 10000]]
+
     args = parser.parse_args()
 
-    data = [measure_download_time(args.host, args.port, f"/{args.file}") for _ in range(args.count)]
+    for file in files_list:
+        data = [measure_download_time(args.host, args.port, f"/{file[0]}") for _ in range(file[1])]
 
-    times = np.array([d.time for d in data])
-    recv = np.array([d.recv for d in data])
-    sizes = [d.size for d in data]
-    assert len(set(sizes)) == 1
-    size = sizes[0]
+        times = np.array([d.time for d in data])
+        recv = np.array([d.recv for d in data])
+        sizes = [d.size for d in data]
+        assert len(set(sizes)) == 1
+        size = sizes[0]
 
+        print(f"Current file: {file[0]}")
+        print(f"Receive time:   {np.mean(times)} ± {np.std(times)} ns")
+        print(f"Bytes received: {np.mean(recv)} ± {np.std(recv)} bytes")
+        overhead = recv / size
+        print(f"Overhead:       {np.mean(overhead)} ± {np.std(overhead)}")
 
-    print(f"Receive time:   {np.mean(times)} ± {np.std(times)} ns")
-    print(f"Bytes received: {np.mean(recv)} ± {np.std(recv)} bytes")
-    overhead = recv / size
-    print(f"Overhead:       {np.mean(overhead)} ± {np.std(overhead)}")
-
-    # Size is in bytes, and speed is needed in kbps, so multiply by 8
-    throughput = size / (times / 10**9) * 8 / 1000
-    print(f"Throughput:     {np.mean(throughput)} ± {np.std(throughput)} kbps")
+        # Size is in bytes, and speed is needed in kbps, so multiply by 8
+        throughput = size / (times / 10**9) * 8 / 1000
+        print(f"Throughput:     {np.mean(throughput)} ± {np.std(throughput)} kbps\n")
 
 
 if __name__ == "__main__":
     main()
-
