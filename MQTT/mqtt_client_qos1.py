@@ -24,8 +24,7 @@ time_offset = ntplib.NTPClient().request('pool.ntp.org', version=3).offset
 # Create a defaultdict to store the times when messages were received, indexed by filename
 received_time_file = defaultdict(list)
 
-# Define a function to process incoming MQTT messages
-def active_message(client, userdata, msg):
+# Define a function to process incoming MQTT messages def active_message(client, userdata, msg):
     # Get the current time and add the time offset
     time_Received = time.time() + time_offset
     # Convert the received time to a string
@@ -55,6 +54,15 @@ os.system("clear")
 # Create an MQTT client instance
 mqtt_subscriber = client.Client()
 
+recv = 0
+def new_sock_recv(self, bufsize):
+    global recv
+    ret = self.__sock_recv(bufsize)
+    recv += len(ret)
+
+mqtt_subscriber.__sock_recv = mqtt_subscriber._sock_recv
+mqtt_subscriber._sock_recv = new_sock_recv
+
 # Set the username and password for the broker if required
 # mqtt_subscriber.username_pw_set(username="your_username", password="your_password")
 
@@ -74,3 +82,5 @@ mqtt_subscriber.on_message = on_message_callback
 
 # Start the main loop to listen for incoming MQTT messages
 mqtt_subscriber.loop_forever()
+
+print(recv)
