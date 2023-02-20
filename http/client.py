@@ -26,13 +26,13 @@ def get_raw_http(host, port, path):
         s.connect((host, port))
         s.sendall(request)
 
-        response = b""
+        response_chunks = []
         while True:
             d = s.recv(4096)
             if not d:
                 break
-            response += d
-        return response
+            response_chunks.append(d)
+        return b"".join(response_chunks)
 
 
 def measure_download_time(host, port, path):
