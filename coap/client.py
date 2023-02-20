@@ -4,7 +4,6 @@ import aiocoap
 import argparse
 import asyncio
 import logging
-import socket
 import time
 
 import numpy as np
@@ -12,37 +11,6 @@ import numpy as np
 import aiocoap.transports.udp6
 
 from dataclasses import dataclass
-
-class CountingSocket(socket.socket):
-    bytes_received = 0
-
-    def recvmsg(self, *args, **kwargs):
-        ret = super().recvmsg(*args, **kwargs)
-        self.increase_recv_counter(len(ret[0]))
-        return ret
-
-    @classmethod
-    def reset_recv_counter(cls):
-        cls.bytes_received = 0
-
-    @classmethod
-    def increase_recv_counter(cls, count):
-        cls.bytes_received += count
-
-    @classmethod
-    def get_recv_counter(cls):
-        return cls.bytes_received
-
-
-@classmethod
-async def new_create_client_transport_endpoint(cls, ctx, log, loop):
-    sock = CountingSocket(family=socket.AF_INET6, type=socket.SOCK_DGRAM)
-    sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
-
-    return await cls._create_transport_endpoint(sock, ctx, log, loop)
-
-# Monkeypatching aiocoap to use our counting sockets
-aiocoap.transports.udp6.MessageInterfaceUDP6.create_client_transport_endpoint = new_create_client_transport_endpoint
 
 
 @dataclass
@@ -53,14 +21,13 @@ class Measurement:
 
 
 async def measure_download_time(protocol, uri):
-    CountingSocket.reset_recv_counter()
     start_time = time.perf_counter_ns()
     msg = aiocoap.Message(code=aiocoap.GET, uri=uri)
     response = await protocol.request(msg).response
     end_time = time.perf_counter_ns()
     return Measurement(
             time=end_time - start_time,
-            recv=CountingSocket.get_recv_counter(),
+            recv=len(response.encode()),
             size=len(response.payload))
 
 
