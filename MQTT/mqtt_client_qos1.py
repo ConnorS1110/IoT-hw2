@@ -1,9 +1,16 @@
+import argparse
 import os
 import sys
 import time
 import paho.mqtt.client as client
 import ntplib
 from collections import defaultdict
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("count", help="number of messages before termination")
+
+args = parser.parse_args()
 
 
 #topics
@@ -22,11 +29,11 @@ BROKER_ADDRESS = '192.168.1.198'
 time_offset = ntplib.NTPClient().request('pool.ntp.org', version=3).offset
 
 # Create a defaultdict to store the times when messages were received, indexed by filename
-received_time_file = defaultdict(list)
+received_times = []
 
 recv_times = []
 
-transfers_remaining = 10000
+transfers_remaining = args.count
 
 # Define a function to process incoming MQTT messages
 def active_message(client, userdata, msg):
@@ -39,16 +46,14 @@ def active_message(client, userdata, msg):
     data = msg.payload
     # Assign a filename based on the size of the message
     size = sys.getsizeof(data)
-    filename = (
-        "100B"
-    )
+
     # If the filename is "end", print the contents of the received_time_file dictionary
     transfers_remaining -= 1
     if not transfers_remaining:
         print("files transferred")
     # Otherwise, append the received time to the list for the corresponding filename in the dictionary
     else:
-        received_time_file[filename].append(time_Received)
+        received_times.append(time_Received)
     # Publish a message to the topic used for receiving messages, including the filename and received time
     # client.publish(topic=topic_to_receive_message, payload=filename + " " + received_time, qos=1)
     recv_times.append(received_time)
@@ -84,7 +89,7 @@ def print_recv_bytes():
 
 def send_recv_times():
     for t in recv_times:
-        mqtt_subscriber.publish(topic=topic_to_receive_message, payload=f"100B {t}", qos=1)
+        mqtt_subscriber.publish(topic=topic_to_receive_message, payload=t, qos=1)
 
 
 class _FinishReceiving(Exception):
@@ -94,7 +99,6 @@ class _FinishReceiving(Exception):
 # Define the callback function for incoming messages
 def on_message_callback(client, userdata, message):
     # Call the active_message function with the incoming message
-    global messages_received
     active_message(client, userdata, message)
     if not transfers_remaining:
         print_recv_bytes()
