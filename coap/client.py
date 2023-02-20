@@ -74,7 +74,12 @@ async def main():
     print(f"Receive time:   {np.mean(times)} ± {np.std(times)} ns")
     print(f"Bytes received: {np.mean(recv)} ± {np.std(recv)} bytes")
     if args.expected_size is not None:
-        print(f"Overhead:       {np.mean(recv - args.expected_size)} ± {np.std(recv - args.expected_size)} bytes")
+        overhead = recv / args.expected_size
+        print(f"Overhead:       {np.mean(overhead)} ± {np.std(overhead)}")
+
+        # Size is in bytes, and speed is needed in kbps, so multiply by 8
+        throughput = args.expected_size / (times / 10**9) * 8 / 1000
+        print(f"Throughput:     {np.mean(throughput)} ± {np.std(throughput)} kbps")
 
 
 
