@@ -24,7 +24,10 @@ time_offset = ntplib.NTPClient().request('pool.ntp.org', version=3).offset
 # Create a defaultdict to store the times when messages were received, indexed by filename
 received_time_file = defaultdict(list)
 
-# Define a function to process incoming MQTT messages def active_message(client, userdata, msg):
+recv_times = []
+
+# Define a function to process incoming MQTT messages
+def active_message(client, userdata, msg):
     # Get the current time and add the time offset
     time_Received = time.time() + time_offset
     # Convert the received time to a string
@@ -47,7 +50,8 @@ received_time_file = defaultdict(list)
     else:
         received_time_file[filename].append(time_Received)
     # Publish a message to the topic used for receiving messages, including the filename and received time
-    client.publish(topic=topic_to_receive_message, payload=filename + " " + received_time, qos=1)
+    # client.publish(topic=topic_to_receive_message, payload=filename + " " + received_time, qos=1)
+    recv_times.append(received_time)
 
 os.system("clear")
 
@@ -73,10 +77,18 @@ mqtt_subscriber.connect(BROKER_ADDRESS, port=PORT_NUM)
 # Subscribe to the topic used for sending messages
 mqtt_subscriber.subscribe(topic_to_send_message, qos=1)
 
+messages_received = 0
+
 # Define the callback function for incoming messages
 def on_message_callback(client, userdata, message):
     # Call the active_message function with the incoming message
+    global messages_received
+    messages_received += 1
     active_message(client, userdata, message)
+    if messages_received == 10000:
+        print_recv_bytes()
+        send_recv_times()
+        sys.exit(1)
 
 # Set the on_message callback function
 mqtt_subscriber.on_message = on_message_callback
