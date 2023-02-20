@@ -26,8 +26,11 @@ received_time_file = defaultdict(list)
 
 recv_times = []
 
+transfers_remaining = 10000
+
 # Define a function to process incoming MQTT messages
 def active_message(client, userdata, msg):
+    global transfers_remaining
     # Get the current time and add the time offset
     time_Received = time.time() + time_offset
     # Convert the received time to a string
@@ -37,14 +40,11 @@ def active_message(client, userdata, msg):
     # Assign a filename based on the size of the message
     size = sys.getsizeof(data)
     filename = (
-        "end" if size < 50 else
-        "100B" if size < 200 else
-        "10KB" if size < 20000 else
-        "1MB" if size < 2000000 else
-        "10MB"
+        "100B"
     )
     # If the filename is "end", print the contents of the received_time_file dictionary
-    if filename == "end":
+    transfers_remaining -= 1
+    if not transfers_remaining:
         print("files transferred")
     # Otherwise, append the received time to the list for the corresponding filename in the dictionary
     else:
@@ -79,21 +79,35 @@ mqtt_subscriber.subscribe(topic_to_send_message, qos=1)
 
 messages_received = 0
 
+def print_recv_bytes():
+    print(f"Total bytes received: {recv}", flush=True)
+
+def send_recv_times():
+    for t in recv_times:
+        client.publish(topic=topic_to_receive_message, payload=f"100B {t}", qos=1)
+
+
+class _FinishReceiving(Exception):
+    pass
+
+
 # Define the callback function for incoming messages
 def on_message_callback(client, userdata, message):
     # Call the active_message function with the incoming message
     global messages_received
-    messages_received += 1
     active_message(client, userdata, message)
-    if messages_received == 10000:
+    if not transfers_remaining:
         print_recv_bytes()
         send_recv_times()
-        sys.exit(1)
+        raise _FinishReceiving()
+
 
 # Set the on_message callback function
 mqtt_subscriber.on_message = on_message_callback
 
+try:
 # Start the main loop to listen for incoming MQTT messages
-mqtt_subscriber.loop_forever()
+    mqtt_subscriber.loop_forever()
+except _FinishReceiving:
+    pass
 
-print(recv)
