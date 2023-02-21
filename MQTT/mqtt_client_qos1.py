@@ -8,7 +8,7 @@ from collections import defaultdict
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("count", help="number of messages before termination")
+parser.add_argument("count", type=int, help="number of messages before termination")
 
 args = parser.parse_args()
 
@@ -23,7 +23,7 @@ PORT_NUM = 1883
 KEEP_ALIVE = 100
 
 # Define the IP address of the MQTT broker to connect to
-BROKER_ADDRESS = '192.168.1.198'
+BROKER_ADDRESS = 'localhost'
 
 # Use NTP to get the current time and calculate an offset from UTC
 time_offset = ntplib.NTPClient().request('pool.ntp.org', version=3).offset
@@ -58,10 +58,9 @@ def active_message(client, userdata, msg):
     # client.publish(topic=topic_to_receive_message, payload=filename + " " + received_time, qos=1)
     recv_times.append(received_time)
 
-os.system("clear")
 
 # Create an MQTT client instance
-mqtt_subscriber = client.Client()
+mqtt_subscriber = client.Client(client_id="subscriber")
 
 recv = 0
 def new_sock_recv(self, bufsize):
@@ -87,9 +86,15 @@ messages_received = 0
 def print_recv_bytes():
     print(f"Total bytes received: {recv}", flush=True)
 
-def send_recv_times():
-    for t in recv_times:
-        mqtt_subscriber.publish(topic=topic_to_receive_message, payload=t, qos=1)
+def send_recv_times(client):
+    print(f"Sending {len(recv_times)} times")
+    for i, t in enumerate(recv_times):
+        if i % 100 == 0 or i < 100:
+            print(i)
+        result = client.publish(topic=topic_to_receive_message, payload=t, qos=1)
+        print(f"publish called: {result}")
+        result.wait_for_publish()
+    print(f"Sent {len(recv_times)} times")
 
 
 class _FinishReceiving(Exception):
@@ -102,7 +107,7 @@ def on_message_callback(client, userdata, message):
     active_message(client, userdata, message)
     if not transfers_remaining:
         print_recv_bytes()
-        send_recv_times()
+        send_recv_times(client)
         raise _FinishReceiving()
 
 
