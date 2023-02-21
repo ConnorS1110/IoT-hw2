@@ -1,2 +1,1 @@
 numpy==1.24.2
-http-parser==0.9.0

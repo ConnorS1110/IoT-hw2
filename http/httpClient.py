@@ -7,7 +7,6 @@ import time
 import numpy as np
 
 from dataclasses import dataclass
-from http_parser.parser import HttpParser
 
 @dataclass
 class Measurement:
@@ -37,16 +36,13 @@ def get_raw_http(host, port, path):
 def measure_download_time(host, port, path):
     start_time = time.perf_counter_ns()
     raw_data = get_raw_http(host, port, path)
-    parser = HttpParser()
-    nparsed = parser.execute(raw_data, len(raw_data))
-    assert nparsed == len(raw_data)
+    size = len(raw_data) - raw_data.find(b'\r\n\r\n') - 4
     end_time = time.perf_counter_ns()
 
-    assert parser.get_status_code() < 400
     return Measurement(
             time=end_time - start_time,
             recv=len(raw_data),
-            size=len(parser.recv_body()))
+            size=size)
 
 
 def main():
